@@ -14,11 +14,12 @@ time_format = '%Y%m%d'
 df1['datadate'] = pd.to_datetime(df1['datadate'], format=time_format)
 df1.rename(columns={'datadate': 'date'}, inplace=True)
 
-# drop columns with unnecessary data
-df1 = df1.loc[:, 'actq':]
 
 # reindex to a hierarchical index with date and ticker symbol (tic)
 df1.set_index(['tic', 'date'], inplace=True)
 df1.sort_index(inplace=True)
+
+# drop columns with unnecessary data
+df1 = df1.loc[:, 'actq':]
 
 df1.head()
