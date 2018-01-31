@@ -21,5 +21,8 @@ df1.sort_index(inplace=True)
 
 # drop columns with unnecessary data
 df1 = df1.loc[:, 'actq':]
+df1.drop(['prchq', 'prclq', 'costat'], axis=1, inplace=True)
 
-df1.head()
+# NOTE for this dataset you used accounts payable-utility and not accounts payable and accrued liabilities
+# so all these entries are null (column: uaptq) 
+
