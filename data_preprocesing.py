@@ -19,7 +19,7 @@ df1.sort_index(inplace=True)
 
 # drop columns with unnecessary data
 df1 = df1.loc[:, 'actq':]
-df1.drop(['prchq', 'prclq', 'costat'], axis=1, inplace=True)
+df1.drop(['prchq', 'prclq', 'costat', 'prcraq', 'uaptq'], axis=1, inplace=True)
 
 # NOTE for this dataset you used accounts payable-utility and not accounts payable and accrued liabilities
 # so all these entries are null (column: uaptq) 
@@ -52,11 +52,34 @@ df1['mom_rank_3qtr'] = df1.groupby('date')['% price change 3qtr'].rank()
 df1['shareholders_equity'] = df1['atq'] - df1['ltq']
 
 # calc: market capitalization = #shares outstanding * price per share
-df1['market_cap'] = df1['cshoq'] * df1['prccq']
+df1['mkt_cap'] = df1['cshoq'] * df1['prccq']
 # calculate book-to-market = shareholders equity / market capitalization 
-df1['book_to_mkt'] = 
+df1['bk_to_mkt'] = df1['shareholders_equity'] / df1['mkt_cap']
 
-df1.head()
+# calculate enterprise value = [Market cap(mkt_cap)+(debt in current liabilities(dlcq)+long term debt (dlttq)) + (market value preferred equity = pstkq*prccq)+noncontrolling interest (mibtq)] - [cash and cash eqiv (chechy)]
+# NOTE first I fill mibtq (non controlling interest) NaN values w/ zero for calculation
+df1['mibtq'] = df1['mibtq'].fillna(0)
+df1['entrprs_val']= (df1['mkt_cap'] + df1['dlcq'] + df1['dlttq'] + (df1['pstkq']*df1['prccq']) + df1['mibtq']) - (df1['chechy'])
+
+# calculate earnings yield = operating income(oiadpq) / enterprise value(entrprs_val)
+df1['earnings_yld'] = df1['oiadpq'] / df1['entrprs_val']
+
+# calculate relative percentile ranking of each companymonth of book-to-market : bk_to_mkt_rank_pct
+df1['bk_to_mkt_rank_pct'] = df1.groupby('date')['bk_to_mkt'].rank(pct=True)
+
+# calc relative pct rank of earnings_yld per companymonth : earnings_yld_rank_pct
+df1['earnings_yld_rank_pct'] = df1.groupby('date')['earnings_yld'].rank(pct=True) 
+
+
+
+# NORMALIZE fundamental items (use Frobenius norm)
+
+
+
+
+
+
+
 df1.info()
 
 
@@ -74,8 +97,8 @@ df1.info()
 
 
 
-# testing/fiddling code (delete at end)
-df2 = pd.DataFrame({'tic': ['A', 'AAL', 'AAP', 'AAPL'], 'data':[]}
-print(df2)
-# useful functions: df.rank(), df.pct_change(), df.shift()
+# # testing/fiddling code (delete at end)
+# df2 = pd.DataFrame({'tic': ['A', 'AAL', 'AAP', 'AAPL'], 'data':[]}
+# print(df2)
+# # useful functions: df.rank(), df.pct_change(), df.shift()
 
