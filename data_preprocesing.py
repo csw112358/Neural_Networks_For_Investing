@@ -116,34 +116,33 @@ df1_isnil.head()
 df5 = df1.loc[:, ['mom_rank_1qtr_%', 'mom_rank_2qtr_%', 'mom_rank_3qtr_%', 
                     'bk_to_mkt_rank_pct', 'earnings_yld_rank_pct']]
 
-df5.head(10)
 
 
+# df 6 = rel_momentum/val_df (df5)
+#       + normalized_fundamentals_df (df3_normalized) 
+#       + yr_chg_fundamentas_df (df4)
 
+# df4 has 28 columns 
+# df3_normalized has 28 columns
+# df5 has 5 columns
 
+# create concatenated data frame and null value df
+df6 = pd.concat([df4, df5, df3_normalized], axis='columns')
 
-
-
-# NOTE this section really isnt working : most values are NaN
-# isolate and concatenate all required features for model training
-df_final = pd.concat([df5, df4, df3_normalized])
-
-df_isnil = df_final.isnull() * 1
+# create null matrix
+df_isnil = df6.isnull() * 1
 df_isnil_colnames = list(df_isnil)
 df_isnil_colnames = ['nil?:'+name for name in df_isnil_colnames]
 df_isnil.columns = df_isnil_colnames
 
-df_final = df_final.append(df_isnil)
+df_final = pd.concat([df6, df_isnil], axis='columns')
 
-df_final.info()
-df_final.head()
+df_final = df_final.groupby('tic').fillna(method='ffill', limit=1)
+df_final = df_final.groupby('tic').fillna(0)
 
-# df4.info()
-# df1.info()
-# df1['dvpq'].head(10)
+df_final.isnull().sum()
 
-# df_final.info()
-# df_final.head(10)
+# df6 = df6.groupby('tic').fillna(method='ffill', limit=1)
+# df6 = df6.groupby('tic').fillna(0)
 
-# df4.head(10)
-# df1['oiadpq'].head(20)
+# df6.isnull().sum()
