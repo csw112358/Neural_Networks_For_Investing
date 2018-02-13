@@ -70,12 +70,13 @@ df1['shareholders_equity'] = df1['atq'] - df1['ltq']
 
 # calc: market capitalization = #shares outstanding * price per share
 df1['mkt_cap'] = df1['cshoq'] * df1['prccq']
+
 # calculate book-to-market = shareholders equity / market capitalization 
 df1['bk_to_mkt'] = df1['shareholders_equity'] / df1['mkt_cap']
 
 # calculate enterprise value = [Market cap(mkt_cap)+(debt in current liabilities(dlcq)+long term debt (dlttq)) + (market value preferred equity = pstkq*prccq)+noncontrolling interest (mibtq)] - [cash and cash eqiv (chechy)]
 # NOTE first I fill mibtq (non controlling interest) NaN values w/ zero for calculation
-# df1['mibtq'] = df1['mibtq'].fillna(0)
+df1['mibtq'] = df1['mibtq'].fillna(0)
 df1['entrprs_val']= (df1['mkt_cap'] + df1['dlcq'] + df1['dlttq'] + (df1['pstkq']*df1['prccq']) + df1['mibtq']) - (df1['chechy'])
 
 # calculate earnings yield = operating income(oiadpq) / enterprise value(entrprs_val)
@@ -94,15 +95,14 @@ df1['earnings_yld_rank_pct'] = df1.groupby('date')['earnings_yld'].rank(pct=True
 
 
 
-# create missing value binary matrix 
-df1_isnil = df1.isnull() * 1
+
 
 # fill NaN values : fill forward w/ limit=1, then fill w/ 0 : df2
-df2 = df1.groupby('tic').fillna(method='ffill', limit=2)
-df2 = df2.fillna(0)
+# df2 = df1.groupby('tic').fillna(method='ffill', limit=1)
+# df2 = df2.fillna(0)
 
 # NORMALIZE fundamental items (use Frobenius norm) : df3
-df3 = df2.drop(['%_prc_chg_1qtr', '%_prc_chg_2qtr', '%_prc_chg_3qtr', '%_prc_chg_1yr', 
+df3 = df1.drop(['%_prc_chg_1qtr', '%_prc_chg_2qtr', '%_prc_chg_3qtr', '%_prc_chg_1yr', 
                 'mom_rank_1qtr_%', 'mom_rank_2qtr_%', 'mom_rank_3qtr_%', 'bk_to_mkt_rank_pct', 
                 'earnings_yld_rank_pct'], axis=1)
 
@@ -115,19 +115,19 @@ df3_colnames = ['norm:'+name for name in df3_colnames]
 df3_normalized.columns = df3_colnames
 df3_normalized.head()
 
+df3.isnull().sum()
+# drop items that take negative values: df_temp
+df_temp = df3.drop(['earnings_yld'], axis=1)
+df_temp = df_temp / df_temp.shift(4)
+
 # calculate log(% change 1 yr) for each fundamental item that is not negative value
-df4 = np.log( 1 + df3.pct_change(periods=4) )
+df4 = np.log( 1 + df_temp)
+
 
 # rename df4 columns
 df4_colnames = list(df4)
 df4_colnames = [name+'_1yr_chg' for name in df4_colnames]
 df4.columns = df4_colnames
-
-# rename df1_isnull columns
-df1_isnil_colnames = list(df1_isnil)
-df1_isnil_colnames = ['nil?:'+name for name in df1_isnil_colnames]
-df1_isnil.columns = df1_isnil_colnames
-df1_isnil.head()
 
 # create df_5 = relative momentum and relative value features
 df5 = df1.loc[:, ['mom_rank_1qtr_%', 'mom_rank_2qtr_%', 'mom_rank_3qtr_%', 
@@ -136,13 +136,11 @@ df5 = df1.loc[:, ['mom_rank_1qtr_%', 'mom_rank_2qtr_%', 'mom_rank_3qtr_%',
 
 
 
-# df 6 = rel_momentum/val_df (df5)
-#       + normalized_fundamentals_df (df3_normalized) 
-#       + yr_chg_fundamentas_df (df4)
-#
-# df4 has 28 columns 
-# df3_normalized has 28 columns
-# df5 has 5 columns
+# df 6 = rel_momentum/val_df (df5)                          5 cols
+#       + normalized_fundamentals_df (df3_normalized)       28 cols
+#       + yr_chg_fundamentas_df (df4)                       28 cols
+
+
 
 # create concatenated data frame and null value df
 df6 = pd.concat([df4, df5, df3_normalized], axis='columns')
@@ -155,12 +153,9 @@ df_isnil.columns = df_isnil_colnames
 
 df_final = pd.concat([df6, df_isnil], axis='columns')
 
+
 df_final = df_final.groupby('tic').fillna(method='ffill', limit=1)
 df_final = df_final.groupby('tic').fillna(0)
 
 df_final.isnull().sum()
 
-# df6 = df6.groupby('tic').fillna(method='ffill', limit=1)
-# df6 = df6.groupby('tic').fillna(0)
-
-# df6.isnull().sum()
