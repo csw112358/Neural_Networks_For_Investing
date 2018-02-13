@@ -13,6 +13,25 @@ time_format = '%Y%m%d'
 df1['datadate'] = pd.to_datetime(df1['datadate'], format=time_format)
 df1.rename(columns={'datadate': 'date'}, inplace=True)
 
+
+def adjust_dates(x) :
+    """Function to allign dates to match for each quarter end"""
+    if(x.month == 1 or x.month == 2 or x.month == 3) :
+        x = x.replace(month=1)
+    elif(x.month == 4 or x.month == 5 or x.month == 6):
+        x = x.replace(month=4)
+    elif(x.month == 7 or x.month == 8 or x.month == 9):
+        x = x.replace(month=7)
+    elif(x.month == 10 or x.month == 11 or x.month == 12):
+        x = x.replace(month=10)
+    return x
+
+# adjust dates to match per quarter for ease of processing:
+# jan-mar = 1, apr-jun = 4, jul-sep = 7, oct-dec = 10
+# change days to 28
+df1['date'] = df1['date'].map(lambda x: x.replace(day=28))
+df1['date'] = df1['date'].map(adjust_dates)
+
 # reindex to a hierarchical index with date and ticker symbol (tic)
 df1.set_index(['tic', 'date'], inplace=True)
 df1.sort_index(inplace=True)
@@ -23,6 +42,7 @@ df1.drop(['prchq', 'prclq', 'costat', 'prcraq', 'uaptq'], axis=1, inplace=True)
 
 # NOTE for this dataset you used accounts payable-utility and not accounts payable and accrued liabilities
 # so all these entries are null (column: uaptq) 
+
 
 
 
@@ -44,9 +64,6 @@ df1['mom_rank_2qtr_%'] = df1.groupby('date')['%_prc_chg_2qtr'].rank(pct=True)
 df1['mom_rank_3qtr_%'] = df1.groupby('date')['%_prc_chg_3qtr'].rank(pct=True)
 # check that it worked:
 # print(df1.loc[(slice(None), '2009-12-31'), ['% price change 1qtr', 'mom_rank_1qtr']])
-# NOTE problem: I am not sure all quarterly dates are the same in df1, some start Jan 1 others March 1
-# solution: I could create a conditional loop that changes one date scheme into the other if I know all date schemes
-# i.e. loop through and change march to january, June to April, etc... 
 
 # calculate: shareholders equity = total asets (atq) - total liabilities (ltq)
 df1['shareholders_equity'] = df1['atq'] - df1['ltq']
@@ -58,7 +75,7 @@ df1['bk_to_mkt'] = df1['shareholders_equity'] / df1['mkt_cap']
 
 # calculate enterprise value = [Market cap(mkt_cap)+(debt in current liabilities(dlcq)+long term debt (dlttq)) + (market value preferred equity = pstkq*prccq)+noncontrolling interest (mibtq)] - [cash and cash eqiv (chechy)]
 # NOTE first I fill mibtq (non controlling interest) NaN values w/ zero for calculation
-df1['mibtq'] = df1['mibtq'].fillna(0)
+# df1['mibtq'] = df1['mibtq'].fillna(0)
 df1['entrprs_val']= (df1['mkt_cap'] + df1['dlcq'] + df1['dlttq'] + (df1['pstkq']*df1['prccq']) + df1['mibtq']) - (df1['chechy'])
 
 # calculate earnings yield = operating income(oiadpq) / enterprise value(entrprs_val)
@@ -118,10 +135,11 @@ df5 = df1.loc[:, ['mom_rank_1qtr_%', 'mom_rank_2qtr_%', 'mom_rank_3qtr_%',
 
 
 
+
 # df 6 = rel_momentum/val_df (df5)
 #       + normalized_fundamentals_df (df3_normalized) 
 #       + yr_chg_fundamentas_df (df4)
-
+#
 # df4 has 28 columns 
 # df3_normalized has 28 columns
 # df5 has 5 columns
