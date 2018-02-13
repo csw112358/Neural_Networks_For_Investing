@@ -13,7 +13,7 @@ time_format = '%Y%m%d'
 df1['datadate'] = pd.to_datetime(df1['datadate'], format=time_format)
 df1.rename(columns={'datadate': 'date'}, inplace=True)
 
-
+# define a helper function: adjust_dates
 def adjust_dates(x) :
     """Function to allign dates to match for each quarter end"""
     if(x.month == 1 or x.month == 2 or x.month == 3) :
@@ -42,6 +42,7 @@ df1.drop(['prchq', 'prclq', 'costat', 'prcraq', 'uaptq'], axis=1, inplace=True)
 
 # NOTE for this dataset you used accounts payable-utility and not accounts payable and accrued liabilities
 # so all these entries are null (column: uaptq) 
+
 
 
 
@@ -95,14 +96,12 @@ df1['earnings_yld_rank_pct'] = df1.groupby('date')['earnings_yld'].rank(pct=True
 
 
 
-
-
 # fill NaN values : fill forward w/ limit=1, then fill w/ 0 : df2
-# df2 = df1.groupby('tic').fillna(method='ffill', limit=1)
-# df2 = df2.fillna(0)
+df2 = df1.groupby('tic').fillna(method='ffill', limit=1)
+df2 = df2.fillna(0)
 
 # NORMALIZE fundamental items (use Frobenius norm) : df3
-df3 = df1.drop(['%_prc_chg_1qtr', '%_prc_chg_2qtr', '%_prc_chg_3qtr', '%_prc_chg_1yr', 
+df3 = df2.drop(['%_prc_chg_1qtr', '%_prc_chg_2qtr', '%_prc_chg_3qtr', '%_prc_chg_1yr', 
                 'mom_rank_1qtr_%', 'mom_rank_2qtr_%', 'mom_rank_3qtr_%', 'bk_to_mkt_rank_pct', 
                 'earnings_yld_rank_pct'], axis=1)
 
@@ -113,16 +112,13 @@ df3_normalized = df3 / df3_norm
 df3_colnames = list(df3)
 df3_colnames = ['norm:'+name for name in df3_colnames]
 df3_normalized.columns = df3_colnames
-df3_normalized.head()
 
-df3.isnull().sum()
 # drop items that take negative values: df_temp
 df_temp = df3.drop(['earnings_yld'], axis=1)
 df_temp = df_temp / df_temp.shift(4)
 
 # calculate log(% change 1 yr) for each fundamental item that is not negative value
 df4 = np.log( 1 + df_temp)
-
 
 # rename df4 columns
 df4_colnames = list(df4)
@@ -133,14 +129,9 @@ df4.columns = df4_colnames
 df5 = df1.loc[:, ['mom_rank_1qtr_%', 'mom_rank_2qtr_%', 'mom_rank_3qtr_%', 
                     'bk_to_mkt_rank_pct', 'earnings_yld_rank_pct']]
 
-
-
-
 # df 6 = rel_momentum/val_df (df5)                          5 cols
 #       + normalized_fundamentals_df (df3_normalized)       28 cols
 #       + yr_chg_fundamentas_df (df4)                       28 cols
-
-
 
 # create concatenated data frame and null value df
 df6 = pd.concat([df4, df5, df3_normalized], axis='columns')
@@ -154,8 +145,11 @@ df_isnil.columns = df_isnil_colnames
 df_final = pd.concat([df6, df_isnil], axis='columns')
 
 
+df_final.replace([np.inf, -np.inf], np.nan, inplace=True)
 df_final = df_final.groupby('tic').fillna(method='ffill', limit=1)
 df_final = df_final.groupby('tic').fillna(0)
 
-df_final.isnull().sum()
+
+df_final.head(10)
+
 
