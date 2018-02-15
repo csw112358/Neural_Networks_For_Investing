@@ -215,9 +215,9 @@ from keras.models import Sequential
 # Instantiate MLP : model_1
 n_cols = X.shape[1]
 model_1 = Sequential()
-model_1.add(Dense(100, activation='relu', input_shape=(n_cols,)))
-model_1.add(Dense(100, activation='relu'))
-model_1.add(Dense(1, activation='sigmoid'))
+model_1.add(Dense(100, activation='relu', kernel_initializer='uniform', input_shape=(n_cols,)))
+model_1.add(Dense(100, activation='relu', kernel_initializer='uniform'))
+model_1.add(Dense(1, activation='sigmoid', kernel_initializer='uniform'))
 
 # Import EarlyStopping
 from keras.callbacks import EarlyStopping
@@ -227,7 +227,7 @@ early_stopping_monitor = EarlyStopping(patience=2)
 model_1.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy']) 
 
 # Train the model
-model_1_training = model_1.fit(X_train, y_train, epochs=10, callbacks=[early_stopping_monitor], verbose=False, validation_data=(X_test, y_test))
+model_1_training = model_1.fit(X_train, y_train, epochs=10, callbacks=[early_stopping_monitor], validation_data=(X_test, y_test))
 
 # Create performance plot
 import seaborn as sns
@@ -237,8 +237,8 @@ plt.xlabel('Epochs')
 plt.ylabel('Validation score')
 plt.show()
 
-
-
+score, acc = model_1.evaluate(X_test, y_test)
+print("score {0}, accuracy {1}".format(score, acc))
 
 
 
