@@ -75,7 +75,12 @@ df1['mkt_cap'] = df1['cshoq'] * df1['prccq']
 # calculate book-to-market = shareholders equity / market capitalization 
 df1['bk_to_mkt'] = df1['shareholders_equity'] / df1['mkt_cap']
 
-# calculate enterprise value = [Market cap(mkt_cap)+(debt in current liabilities(dlcq)+long term debt (dlttq)) + (market value preferred equity = pstkq*prccq)+noncontrolling interest (mibtq)] - [cash and cash eqiv (chechy)]
+# calculate enterprise value = [Market cap(mkt_cap)
+#                               +(debt in current liabilities(dlcq)
+#                               +long term debt (dlttq)) 
+#                               + market value preferred equity (pstkq*prccq)
+#                               + noncontrolling interest (mibtq)] 
+#                               - [cash and cash eqiv (chechy)]
 # NOTE first I fill mibtq (non controlling interest) NaN values w/ zero for calculation
 df1['mibtq'] = df1['mibtq'].fillna(0)
 df1['entrprs_val']= (df1['mkt_cap'] + df1['dlcq'] + df1['dlttq'] + (df1['pstkq']*df1['prccq']) + df1['mibtq']) - (df1['chechy'])
@@ -142,14 +147,55 @@ df_isnil_colnames = list(df_isnil)
 df_isnil_colnames = ['nil?:'+name for name in df_isnil_colnames]
 df_isnil.columns = df_isnil_colnames
 
+# create final df
 df_final = pd.concat([df6, df_isnil], axis='columns')
 
-
+# fill NaN values
 df_final.replace([np.inf, -np.inf], np.nan, inplace=True)
 df_final = df_final.groupby('tic').fillna(method='ffill', limit=1)
 df_final = df_final.groupby('tic').fillna(0)
 
-
 df_final.head(10)
 
+
+
+
+
+
+
+
+
+
+
+# create target variables: outperformance over one year of meadian of all stocks
+pct_chg = df2[['%_prc_chg_1yr']]
+median_pct_change = pct_chg.groupby('date')['%_prc_chg_1yr'].median()
+dic = median_pct_change.to_dict()
+
+from itertools import islice
+def take(n, iterable):
+    "Return first n items of the iterable as a list"
+    return list(islice(iterable, n))
+
+n_items = take(6, dic.items())
+
+dates = df2.index.get_level_values('date')
+dates = pd.Series(dates)
+print(dates)
+
+med_prc_chg = dates.map(dic)
+type(med_prc_chg)
+
+values = df2['%_prc_chg_1yr'].values
+print(len(values))
+
+y = (values > med_prc_chg)
+y = y*1
+print(y)
+
+
+
+
+
+# RNN 
 
