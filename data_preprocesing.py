@@ -101,6 +101,7 @@ df1['earnings_yld_rank_pct'] = df1.groupby('date')['earnings_yld'].rank(pct=True
 
 
 
+
 # fill NaN values : fill forward w/ limit=1, then fill w/ 0 : df2
 df2 = df1.groupby('tic').fillna(method='ffill', limit=1)
 df2 = df2.fillna(0)
@@ -155,9 +156,7 @@ df_final.replace([np.inf, -np.inf], np.nan, inplace=True)
 df_final = df_final.groupby('tic').fillna(method='ffill', limit=1)
 df_final = df_final.groupby('tic').fillna(0)
 
-df_final.head(10)
-
-
+X = df_final
 
 
 
@@ -168,8 +167,12 @@ df_final.head(10)
 
 
 # create target variables: outperformance over one year of meadian of all stocks
+
+# find median pct change 
 pct_chg = df2[['%_prc_chg_1yr']]
 median_pct_change = pct_chg.groupby('date')['%_prc_chg_1yr'].median()
+
+#create dictionary with median yearly percernt change for each quarter
 dic = median_pct_change.to_dict()
 
 from itertools import islice
@@ -181,21 +184,63 @@ n_items = take(6, dic.items())
 
 dates = df2.index.get_level_values('date')
 dates = pd.Series(dates)
-print(dates)
 
 med_prc_chg = dates.map(dic)
-type(med_prc_chg)
 
 values = df2['%_prc_chg_1yr'].values
-print(len(values))
 
+# create target data : 1 if outpreformed median % year change for that year, else 0 
 y = (values > med_prc_chg)
 y = y*1
-print(y)
+print(type(y))
+
+# convert data to numpy ndarrays
+y = y.as_matrix()
+X = X.as_matrix()
+
+
+
+
+# RNN construction 
+
+# split data into train and test sets
+from sklearn.model_selection import train_test_split
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+
+# Import keras packages
+import keras
+from keras.layers import Dense
+from keras.models import Sequential
+
+# Instantiate MLP : model_1
+n_cols = X.shape[1]
+model_1 = Sequential()
+model_1.add(Dense(100, activation='relu', input_shape=(n_cols,)))
+model_1.add(Dense(100, activation='relu'))
+model_1.add(Dense(1, activation='sigmoid'))
+
+# Import EarlyStopping
+from keras.callbacks import EarlyStopping
+early_stopping_monitor = EarlyStopping(patience=2)
+
+# Compile the model
+model_1.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy']) 
+
+# Train the model
+model_1_training = model_1.fit(X_train, y_train, epochs=10, callbacks=[early_stopping_monitor], verbose=False, validation_data=(X_test, y_test))
+
+# Create performance plot
+import seaborn as sns
+sns.set()
+plt.plot(model_1_training.history['val_loss'])
+plt.xlabel('Epochs')
+plt.ylabel('Validation score')
+plt.show()
 
 
 
 
 
-# RNN 
+
+
 
