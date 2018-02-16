@@ -98,7 +98,8 @@ df1['earnings_yld_rank_pct'] = df1.groupby('date')['earnings_yld'].rank(pct=True
 
 
 
-df1[['prccq', '%_prc_chg_1yr']].head(10)
+
+
 
 
 
@@ -171,12 +172,20 @@ X = df_final
 
 
 
-
 # create target variables: outperformance over one year of meadian of all stocks
+pct_chg.loc[pct_chg.groupby('tic').head(10).index, :]
+
 
 # find median pct change 
 pct_chg = df2[['%_prc_chg_1yr']]
 median_pct_change = pct_chg.groupby('date')['%_prc_chg_1yr'].median()
+pct_chg['median_pct_chg'] = pct_chg.groupby('date')['%_prc_chg_1yr'].median()
+
+pct_chg.head(10)
+# pct_chg.loc[pct_chg.groupby('tic').head(7).index, :]
+# pct_chg.loc['AAP', :].head(20)
+# df2.loc['AAP', ['prccq', 'atq']].head(20)
+
 
 # create dictionary with median yearly percernt change for each quarter
 dic = median_pct_change.to_dict()
@@ -191,6 +200,7 @@ n_items = take(6, dic.items())
 dates = df2.index.get_level_values('date')
 dates = pd.Series(dates)
 
+
 med_prc_chg = dates.map(dic)
 
 values = df2['%_prc_chg_1yr'].values
@@ -200,12 +210,27 @@ y = (values > med_prc_chg)
 y = y*1
 
 # NOTE: since we want to predict return one year ahead, shift array 4 qts
-print(y)
-y = np.roll(y, 4)
-print(y)
+y = y.shift(-4)
+y = y.fillna(0)
+
 # convert data to numpy ndarrays
 y = y.as_matrix()
 X = X.as_matrix()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
