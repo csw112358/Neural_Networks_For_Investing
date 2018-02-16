@@ -98,7 +98,7 @@ df1['earnings_yld_rank_pct'] = df1.groupby('date')['earnings_yld'].rank(pct=True
 
 
 
-
+df1[['prccq', '%_prc_chg_1yr']].head(10)
 
 
 
@@ -119,12 +119,18 @@ df3_colnames = list(df3)
 df3_colnames = ['norm:'+name for name in df3_colnames]
 df3_normalized.columns = df3_colnames
 
-# drop items that take negative values: df_temp
+# PROBLEM
+# NOTE: i think i need to use groupby here to make sure i do not overlap stocks w/ the shift method
+# calculate log(% change 1 yr) for each fundamental item that is not negative value
 df_temp = df3.drop(['earnings_yld'], axis=1)
 df_temp = df_temp / df_temp.shift(4)
 
 # calculate log(% change 1 yr) for each fundamental item that is not negative value
 df4 = np.log( 1 + df_temp)
+
+# make first 4 entries of each group NaN so data doesnt leak between groups (different companies)
+df4.loc[df4.groupby('tic').head(4).index, :] = np.NaN
+df4.groupby('tic').nth((0, 1, 2, 3))
 
 # rename df4 columns
 df4_colnames = list(df4)
@@ -172,7 +178,7 @@ X = df_final
 pct_chg = df2[['%_prc_chg_1yr']]
 median_pct_change = pct_chg.groupby('date')['%_prc_chg_1yr'].median()
 
-#create dictionary with median yearly percernt change for each quarter
+# create dictionary with median yearly percernt change for each quarter
 dic = median_pct_change.to_dict()
 
 from itertools import islice
@@ -192,8 +198,11 @@ values = df2['%_prc_chg_1yr'].values
 # create target data : 1 if outpreformed median % year change for that year, else 0 
 y = (values > med_prc_chg)
 y = y*1
-print(type(y))
 
+# NOTE: since we want to predict return one year ahead, shift array 4 qts
+print(y)
+y = np.roll(y, 4)
+print(y)
 # convert data to numpy ndarrays
 y = y.as_matrix()
 X = X.as_matrix()
